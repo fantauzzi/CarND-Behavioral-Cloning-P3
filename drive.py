@@ -31,7 +31,7 @@ class SimplePIController:
         self.integral = 0.
 
     def set_desired(self, desired):
-        self.set_point = desired
+        self .set_point = desired
 
     def update(self, measurement):
         # proportional error
@@ -47,7 +47,7 @@ controller = SimplePIController(0.1, 0.002)
 set_speed = 9
 controller.set_desired(set_speed)
 
-
+import cv2
 @sio.on('telemetry')
 def telemetry(sid, data):
     if data:
@@ -61,7 +61,8 @@ def telemetry(sid, data):
         imgString = data["image"]
         image = Image.open(BytesIO(base64.b64decode(imgString)))
         image_array = np.asarray(image)
-        steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
+        the_image = cv2.cvtColor(image_array, cv2.COLOR_BGR2LAB)
+        steering_angle = float(model.predict(the_image[None, :, :, :], batch_size=1))
 
         throttle = controller.update(float(speed))
 
