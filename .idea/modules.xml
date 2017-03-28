@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/CarND-Behavioral-Cloning-P3.iml" filepath="$PROJECT_DIR$/.idea/CarND-Behavioral-Cloning-P3.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../CarND-Transfer-Learning-Lab/.idea/CarND-Transfer-Learning-Lab.iml" filepath="$PROJECT_DIR$/../CarND-Transfer-Learning-Lab/.idea/CarND-Transfer-Learning-Lab.iml" />
     </modules>
   </component>
 </project>
