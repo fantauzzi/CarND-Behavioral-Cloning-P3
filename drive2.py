@@ -3,6 +3,7 @@ import base64
 from datetime import datetime
 import os
 import shutil
+import cv2
 
 import numpy as np
 import socketio
@@ -16,11 +17,12 @@ from keras.models import load_model
 import h5py
 from keras import __version__ as keras_version
 
-from main import pre_process
+from cache2 import pre_process, create_model
 
 sio = socketio.Server()
 app = Flask(__name__)
 model = None
+base_model = None
 prev_image_array = None
 
 
@@ -49,7 +51,6 @@ controller = SimplePIController(0.1, 0.002)
 set_speed = 9
 controller.set_desired(set_speed)
 
-import cv2
 @sio.on('telemetry')
 def telemetry(sid, data):
     if data:
@@ -63,9 +64,10 @@ def telemetry(sid, data):
         imgString = data["image"]
         image = Image.open(BytesIO(base64.b64decode(imgString)))
         image_array = np.asarray(image)
-        # the_image = cv2.cvtColor(image_array, cv2.COLOR_RGB2YUV)
-        the_image = pre_process(image_array)
-        steering_angle = float(model.predict(the_image[None, :, :, :], batch_size=1))
+        image_array = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
+        the_image = pre_process(image_array, 224, 224)
+        transfered_image = base_model.predict(the_image[None, :, :, :], batch_size=1)
+        steering_angle = float(model.predict(transfered_image, batch_size=1))
 
         throttle = controller.update(float(speed))
 
@@ -124,6 +126,7 @@ if __name__ == '__main__':
               ', but the model was built using ', model_version)
 
     model = load_model(args.model)
+    base_model = create_model('vgg', 224, 224, 3)  # TODO fix this hard-wiring
 
     if args.image_folder != '':
         print("Creating image folder at {}".format(args.image_folder))

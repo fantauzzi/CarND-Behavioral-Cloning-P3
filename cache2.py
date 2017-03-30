@@ -21,7 +21,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string('dataset', '.', "Path to the dataset")
 flags.DEFINE_string('network', 'vgg', "The model to bottleneck, one of 'vgg', 'inception', or 'resnet'")
-flags.DEFINE_integer('batch_size', 24, 'The batch size for the generator')
+flags.DEFINE_integer('batch_size', 6, 'The batch size for the generator')
 
 batch_size = FLAGS.batch_size
 
@@ -36,34 +36,35 @@ img_placeholder = tf.placeholder("uint8", (None, 160 - 70 - 25, 320, 3))
 resize_op = tf.image.resize_images(img_placeholder, (h, w), method=0)
 
 
-def pre_process(image):
+def pre_process(image, height, width):
     # Convert to desired color space
     image = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
     # Crop 70, 25
     image_h = image.shape[0]
     image = image[70:image_h - 25, :]
     # Resize to meet the required input size for the NN
-    image = cv2.resize(image, (h, w))
+    image = cv2.resize(image, (height, width))
     # Ensure range of pixels is in [-1, 1]
     image = (image / 255 - .5) * 2
     return image
 
 
-def create_model():
-    input_tensor = Input(shape=(h, w, ch))
-    if FLAGS.network == 'vgg':
-        model = VGG16(input_tensor=input_tensor, include_top=False)
-        x = model.output
+def create_model(network, height, width, channels):
+    input_tensor = Input(shape=(height, width, channels))
+    if network == 'vgg':
+        new_model = VGG16(input_tensor=input_tensor, include_top=False)
+        x = new_model.output
         x = AveragePooling2D((7, 7))(x)
-        model = Model(model.input, x)
-    elif FLAGS.network == 'inception':
-        model = InceptionV3(input_tensor=input_tensor, include_top=False)
-        x = model.output
+        new_model = Model(new_model.input, x)
+    elif network == 'inception':
+        new_model = InceptionV3(input_tensor=input_tensor, include_top=False)
+        x = new_model.output
         x = AveragePooling2D((8, 8), strides=(8, 8))(x)
-        model = Model(model.input, x)
+        new_model = Model(new_model.input, x)
     else:
-        model = ResNet50(input_tensor=input_tensor, include_top=False)
-    return model
+        assert network == 'resnet'
+        new_model = ResNet50(input_tensor=input_tensor, include_top=False)
+    return new_model
 
 
 def load_telemetry(fname):
@@ -83,11 +84,13 @@ def load_telemetry(fname):
 
 
 def load_dataset(telemetry, base_dir, offset, batch_size):
+    drift = (0, .5, -.5)  # (Center, Left, Right)
     images, angles = [], []
     for i in range(offset, offset+batch_size):
         if i >= len(telemetry):
             break
         item = telemetry[i]
+        '''
         name = base_dir + '/IMG/' + item[0].split('/')[-1]
         center_image = cv2.imread(name)
         assert center_image is not None
@@ -95,6 +98,19 @@ def load_dataset(telemetry, base_dir, offset, batch_size):
         center_angle = float(item[3])
         images.append(center_image)
         angles.append(center_angle)
+        '''
+        for j in range(3):
+            name = base_dir + '/IMG/' + item[j].split('/')[-1]
+            image = cv2.imread(name)
+            if image is None:
+                print('File not found:', name)
+            assert image is not None
+            angle = float(item[3]) + drift[j]
+            image = pre_process(image, height=h, width=w)
+            images.append(image)
+            angles.append(angle)
+            images.append(np.fliplr(image))
+            angles.append(-angle)
 
     X = np.array(images)
     y = np.array(angles)
@@ -110,30 +126,36 @@ def main():
     telemetry = load_telemetry(csv_fname)
     print('Read', len(telemetry), 'lines from input csv file', csv_fname)
 
-    sess = tf.Session()
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True  # Set to True to prevent TF from pre-allocating all available GPU memory
+    sess = tf.Session(config=config)
     sess.as_default()
     K.set_session(sess)
     K.set_learning_phase(1)
 
     # Instantiate the model of choice and fill in the trained weights
-    model = create_model()
+    augment_factor = 6
+    model = create_model(FLAGS.network, h, w, ch)
     n_samples = len(telemetry)
     batch_count = 0
     print("Resizing to", (w, h, ch))
     n_batches = ceil(n_samples/batch_size)
-    X_cache = []
+    X_cache, y_cache = [], []
     for offset in range(0, n_samples, batch_size):
         print('Processing batch {}/{}'.format(batch_count+1, n_batches))
         # Load the dataset
         X, y = load_dataset(telemetry, dataset_dir, offset, batch_size)
-        assert len(X) == len(y) <=batch_size
-        bottleneck_features_train = model.predict(X, batch_size=batch_size, verbose=1)
+        assert len(X) == len(y) <=augment_factor*batch_size
+        bottleneck_features_train = model.predict(X, batch_size=batch_size*augment_factor, verbose=1)
         X_cache.extend(bottleneck_features_train)
+        y_cache.extend(y)
         batch_count += 1
     X_cache = np.array(X_cache)
-    data = {'features': X_cache, 'labels': telemetry[:, 3]}
+    y_cache = np.array(y_cache)
+    data = {'features': X_cache, 'labels': y_cache}
     train_output_file = "{}_{}_{}.p".format(FLAGS.network, 'driving', 'bottleneck_features_train')
     pickle.dump(data, open(train_output_file, 'wb'))
+    print('Saved trained network status in file', train_output_file)
 
 
 if __name__ == '__main__':
