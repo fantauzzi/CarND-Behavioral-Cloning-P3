@@ -34,8 +34,6 @@ with open(csv_fname) as csv_file:
             continue
         telemetry.append(line)
 
-# telemetry = pandas.read_csv(csv_fname)
-#print('Read', len(telemetry.index), 'lines from input csv file', csv_fname)
 print('Read', len(telemetry), 'lines from input csv file', csv_fname)
 
 # Load images from the dataset
@@ -47,13 +45,17 @@ train_samples, validation_samples = train_test_split(telemetry, test_size=0.1)
 # Translate the image by `shift` pixels (shift > 0 is to the right), fill in blank with black
 def shift_image(image, shift):
     M = np.float32([[1, 0, shift], [0, 1, 0]])
-    image = cv2.warpAffine(image, M, image.shape[0:2])
+    image = cv2.warpAffine(image, M, image.shape[1::-1])
     return image
 
+
 def generator(samples, batch_size=48):
-    assert batch_size % 6 == 0
-    sub_batch_size = batch_size // 6
-    drift = (0, .6, -.6)  # (Center, Left, Right)
+    assert batch_size % 8 == 0
+    sub_batch_size = batch_size // 8
+    # TODO make this more readable
+    drift = (0, .5, -.5)  # (Center, Left, Right)
+    add_drift = (0, .1, -.1)  # (Not used, Left, Right)
+    shift = (0, 50, -50)  # (Not used, Left, Right)
     num_samples = len(samples)
     while True:
         np.random.shuffle(samples)
@@ -76,6 +78,10 @@ def generator(samples, batch_size=48):
                     angles.append(angle)
                     images.append(np.fliplr(image))
                     angles.append(-angle)
+                    # Add augmented data for the left and right camera images
+                    if i == 1 or i == 2:
+                        images.append(shift_image(image, shift[i]))
+                        angles.append(angle + add_drift[i])
 
             X_train = np.array(images)
             y_train = np.array(angles)
@@ -84,8 +90,8 @@ def generator(samples, batch_size=48):
 
 # compile and train the model using the generator function
 batch_size = 48
-# How many images (included augmented data) are processed for every real image in the dataset
-sub_batch_factor = 6
+# How many images (included augmented data) are processed for every image in the dataset
+sub_batch_factor = 8
 assert batch_size % sub_batch_factor == 0
 train_generator = generator(train_samples, batch_size=batch_size)
 validation_generator = generator(validation_samples, batch_size=batch_size)
@@ -94,8 +100,8 @@ validation_generator = generator(validation_samples, batch_size=batch_size)
 
 model = Sequential()
 # model.add(Lambda(lambda x: cv2.cvtColor(x.eval(session=sess), cv2.COLOR_RGB2LAB), input_shape=(160, 320, 3)))
-model.add(Lambda(lambda x: (x / 255 - .5)*2, input_shape=(160, 320, 3)))
-model.add(Cropping2D(cropping=((70, 25), (0, 0))))
+model.add(Lambda(lambda x: (x / 255 - .5) * 2, input_shape=(160, 320, 3)))
+model.add(Cropping2D(cropping=((70, 25), (30, 30))))
 model.add(Conv2D(24, kernel_size=(5, 5), strides=(2, 2), activation='relu'))
 # model.add(MaxPooling2D(pool_size=(2, 2)))
 model.add(Conv2D(36, kernel_size=(5, 5), strides=(2, 2), activation='relu'))
@@ -118,11 +124,10 @@ start_time = time.time()
 log = model.fit_generator(train_generator,
                           steps_per_epoch=math.ceil(sub_batch_factor * len(train_samples) / batch_size),
                           validation_data=validation_generator,
-                          validation_steps=math.ceil(sub_batch_factor * len(validation_samples)/batch_size),
+                          validation_steps=math.ceil(sub_batch_factor * len(validation_samples) / batch_size),
                           epochs=5,
                           verbose=1,
                           workers=1)
-
 
 end_time = time.time()
 

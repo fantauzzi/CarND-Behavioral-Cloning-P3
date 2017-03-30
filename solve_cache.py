@@ -33,14 +33,15 @@ def load_bottleneck_data(training_file):
     return X_train, y_train
 
 
-def main(_):
+def main():
     # load bottleneck data
     X_train, y_train = load_bottleneck_data(FLAGS.training_file)
 
-    X_train = np.squeeze(X_train)
+    # X_train = np.squeeze(X_train)
     model = Sequential()
     # model.add(Dense(input_shape=(fan_in,), units=fan_out, name='Dense-1'))
-    model.add(Dense(input_dim=512, units=256, activation='relu', name='Dense-1'))
+    model.add(Flatten(input_shape=X_train.shape[1:]))
+    model.add(Dense(units=256, activation='relu', name='Dense-1'))
     model.add(Dense(units=128, name='Dense-2'))
     model.add(Dense(units=64, name='Dense-3'))
     model.add(Dense(units=1, name='Dense-4'))
@@ -53,7 +54,7 @@ def main(_):
               epochs=FLAGS.epochs,
               batch_size=FLAGS.batch_size,
               shuffle=True,
-              validation_split=.2)
+              validation_split=.1)
 
     model_fname = 'mymodel.h5'
     model.save(model_fname)
@@ -70,4 +71,4 @@ def main(_):
 
 # parses flags and calls the `main` function above
 if __name__ == '__main__':
-    tf.app.run()
+    main()

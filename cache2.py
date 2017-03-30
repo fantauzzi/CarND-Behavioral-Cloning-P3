@@ -20,7 +20,7 @@ flags = tf.app.flags
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string('dataset', '.', "Path to the dataset")
-flags.DEFINE_string('network', 'resnet', "The model to bottleneck, one of 'vgg', 'inception', or 'resnet'")
+flags.DEFINE_string('network', 'vgg', "The model to bottleneck, one of 'vgg', 'inception', or 'resnet'")
 flags.DEFINE_integer('batch_size', 24, 'The batch size for the generator')
 
 batch_size = FLAGS.batch_size
@@ -38,7 +38,7 @@ resize_op = tf.image.resize_images(img_placeholder, (h, w), method=0)
 
 def pre_process(image):
     # Convert to desired color space
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
     # Crop 70, 25
     image_h = image.shape[0]
     image = image[70:image_h - 25, :]
@@ -103,6 +103,7 @@ def load_dataset(telemetry, base_dir, offset, batch_size):
 
 def main():
     # Load csv file with telemetry
+
     # Base directory for the dataset
     dataset_dir = FLAGS.dataset
     csv_fname = dataset_dir + '/driving_log.csv'
@@ -113,6 +114,8 @@ def main():
     sess.as_default()
     K.set_session(sess)
     K.set_learning_phase(1)
+
+    # Instantiate the model of choice and fill in the trained weights
     model = create_model()
     n_samples = len(telemetry)
     batch_count = 0

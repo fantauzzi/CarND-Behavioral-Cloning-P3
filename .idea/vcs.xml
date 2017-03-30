@@ -2,6 +2,7 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/../CarND-Alexnet-Feature-Extraction" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../CarND-Traffic-Sign-Classifier-Project" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/../CarND-Transfer-Learning-Lab" vcs="Git" />
   </component>
