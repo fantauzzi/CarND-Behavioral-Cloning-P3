@@ -2,7 +2,7 @@ import pickle
 import tensorflow as tf
 import cv2
 import numpy as np
-from keras.layers import Input, Flatten, Dense
+from keras.layers import Input, Flatten, Dense, Dropout
 from keras.models import Model, Sequential
 from matplotlib import pyplot as plt
 
@@ -11,8 +11,8 @@ FLAGS = flags.FLAGS
 
 # command line flags
 flags.DEFINE_string('training_file', 'vgg_driving_bottleneck_features_train.p', "Bottleneck features training file (.p)")
-flags.DEFINE_integer('epochs', 25, "The number of epochs.")
-flags.DEFINE_integer('batch_size', 48, "The batch size.")
+flags.DEFINE_integer('epochs', 5, "The number of epochs.")
+flags.DEFINE_integer('batch_size', 64, "The batch size.")
 
 def load_bottleneck_data(training_file):
     """
@@ -41,12 +41,17 @@ def main():
     model = Sequential()
     # model.add(Dense(input_shape=(fan_in,), units=fan_out, name='Dense-1'))
     model.add(Flatten(input_shape=X_train.shape[1:]))
-    model.add(Dense(units=384, activation='relu', name='Dense-1'))
-    model.add(Dense(units=192, name='Dense-2'))
-    model.add(Dense(units=96, name='Dense-3'))
-    model.add(Dense(units=48, name='Dense-4'))
-    model.add(Dense(units=1, name='Dense-5'))
 
+    model.add(Dense(units=512, activation='relu', name='Dense-0'))
+    model.add(Dropout(rate=.3))
+    model.add(Dense(units=384, activation='relu', name='Dense-1'))
+    model.add(Dropout(rate=.3))
+    model.add(Dense(units=192, activation='relu',name='Dense-2'))
+    model.add(Dropout(rate=.3))
+    model.add(Dense(units=96, activation='relu',name='Dense-3'))
+    model.add(Dropout(rate=.3))
+    model.add(Dense(units=48, activation='relu', name='Dense-4'))
+    model.add(Dense(units=1, name='Dense-5'))
     model.compile(optimizer='adam', loss='mse')
 
     # train model

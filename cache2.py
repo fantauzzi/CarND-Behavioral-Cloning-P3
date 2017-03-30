@@ -3,6 +3,7 @@
 from keras.applications.resnet50 import ResNet50, preprocess_input
 from keras.applications.inception_v3 import InceptionV3
 from keras.applications.vgg16 import VGG16
+from keras.applications.vgg19 import VGG19
 from keras.layers import Input, AveragePooling2D
 from sklearn.model_selection import train_test_split
 from keras.models import Model
@@ -21,7 +22,7 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string('dataset', '.', "Path to the dataset")
 flags.DEFINE_string('network', 'vgg', "The model to bottleneck, one of 'vgg', 'inception', or 'resnet'")
-flags.DEFINE_integer('batch_size', 6, 'The batch size for the generator')
+flags.DEFINE_integer('batch_size', 12, 'The batch size for the generator')
 
 batch_size = FLAGS.batch_size
 
@@ -41,18 +42,18 @@ def pre_process(image, height, width):
     image = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
     # Crop 70, 25
     image_h = image.shape[0]
-    image = image[70:image_h - 25, :]
+    image = image[66:image_h - 24, :]
     # Resize to meet the required input size for the NN
     image = cv2.resize(image, (height, width))
     # Ensure range of pixels is in [-1, 1]
-    image = (image / 255 - .5) * 2
+    # image = (image / 255 - .5) * 2
     return image
 
 
 def create_model(network, height, width, channels):
     input_tensor = Input(shape=(height, width, channels))
     if network == 'vgg':
-        new_model = VGG16(input_tensor=input_tensor, include_top=False)
+        new_model = VGG19(input_tensor=input_tensor, include_top=False)
         x = new_model.output
         x = AveragePooling2D((7, 7))(x)
         new_model = Model(new_model.input, x)
@@ -90,15 +91,6 @@ def load_dataset(telemetry, base_dir, offset, batch_size):
         if i >= len(telemetry):
             break
         item = telemetry[i]
-        '''
-        name = base_dir + '/IMG/' + item[0].split('/')[-1]
-        center_image = cv2.imread(name)
-        assert center_image is not None
-        center_image = pre_process(center_image)
-        center_angle = float(item[3])
-        images.append(center_image)
-        angles.append(center_angle)
-        '''
         for j in range(3):
             name = base_dir + '/IMG/' + item[j].split('/')[-1]
             image = cv2.imread(name)
