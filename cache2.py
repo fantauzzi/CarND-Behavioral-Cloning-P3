@@ -40,7 +40,11 @@ resize_op = tf.image.resize_images(img_placeholder, (h, w), method=0)
 def pre_process(image, height, width):
     # Convert to desired color space
     image = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
-    # Crop 70, 25
+    # Equalize histogram of Y channel
+    y_channel = image[:,:,0 ]
+    y_channel = cv2.equalizeHist(y_channel)
+    image[:,:,0] = y_channel
+    # Crop 65, 24
     image_h = image.shape[0]
     image = image[66:image_h - 24, :]
     # Resize to meet the required input size for the NN

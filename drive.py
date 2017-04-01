@@ -55,7 +55,7 @@ def telemetry(sid, data):
     if data:
         # The current steering angle of the car
         steering_angle = data["steering_angle"]
-        # The current throttle of the car
+        # The current throttle of the carmaddfsdfdsfsdfsdf
         throttle = data["throttle"]
         # The current speed of the car
         speed = data["speed"]
@@ -63,13 +63,14 @@ def telemetry(sid, data):
         imgString = data["image"]
         image = Image.open(BytesIO(base64.b64decode(imgString)))
         image_array = np.asarray(image)
-        # the_image = cv2.cvtColor(image_array, cv2.COLOR_RGB2YUV)
+        # Convert from RGB to BGR
+        image_array = image_array[:,:,::-1]
         the_image = pre_process(image_array)
         steering_angle = float(model.predict(the_image[None, :, :, :], batch_size=1))
 
         throttle = controller.update(float(speed))
 
-        print(steering_angle, throttle)
+        # print(steering_angle, throttle)
         send_control(steering_angle, throttle)
 
         # save frame
