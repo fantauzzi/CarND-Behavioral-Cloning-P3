@@ -54,30 +54,37 @@ The model.py file contains the code for training and saving the convolution neur
 
 ####1. An appropriate model architecture has been employed
 
-My model consists of a convolution neural network with 3x3 filter sizes and depths between 32 and 128 (model.py lines 18-24) 
+I have adopted the neural network architecture developed by NVIDIA for end-to-end deep learning of self-driving cars, are reported in their [blog](https://devblogs.nvidia.com/parallelforall/deep-learning-self-driving-cars/). 
 
-The model includes RELU layers to introduce nonlinearity (code line 20), and the data is normalized in the model using a Keras lambda layer (code line 18). 
+Three cameras are mounted in the front of the car, with a visual angle roughly comparable to that of a driver facing forward. The model maps pixels from the camera mounted on the car to a steering angle to be applied for driving.
+
+During training of the network, images from the cameras are fed into it, and its output, a single value, is compared to the angle actually steered by the driver, then the network weights are updated to minimise the mean square error between the two.
+
+When the program drives, images from the center cameras are fed to the trained model, and the resulting steering angle is applied. Images from the side cameras are used for training but not for driving, as illustrated below.
 
 ####2. Attempts to reduce overfitting in the model
 
-The model contains dropout layers in order to reduce overfitting (model.py lines 21). 
+The model uses a stride of 2 in the first three convolutional layers, which reduces the number of trained parameters and the spatial overlapping of the convolution output, which should help control overfitting.
 
-The model was trained and validated on different data sets to ensure that the model was not overfitting (code line 10-16). The model was tested by running it through the simulator and ensuring that the vehicle could stay on the track.
+Trending of the computed loss during training on training and validation data were comparable, and didn't show signs of overfitting.
+
+Most important, the network drove successfully around a track that was never used for training, therefor able to generalise from the received training data. 
 
 ####3. Model parameter tuning
 
-The model used an adam optimizer, so the learning rate was not tuned manually (model.py line 25).
+The model used an adam optimizer, so the learning rate was not tuned manually. However, I tuned the correction to the steering angle for the left and right camera, by trial and error.
 
 ####4. Appropriate training data
 
-Training data was chosen to keep the vehicle driving on the road. I used a combination of center lane driving, recovering from the left and right sides of the road ... 
-
-For details about how I created the training data, see the next section. 
+I adopted the training data provided by Udacity with the simulator; because they didn't cover certain relevant situations, I have complemented them by recording some additional data.  
 
 ###Model Architecture and Training Strategy
 
 ####1. Solution Design Approach
 
+I first adopted a very simple network design, with a fully connected layer and the output layer, to see I could train the model and use it to drive the car in the simulator. I use training data Udacity provided along with the simulator, consisting in more than 8000 images coming from each of the three cameras on the car, for a total of more than 24000 images, along with recorded telemetry data. Training data were all recorded on the same track, that I refer to as the training track. The simulator also allows driving on a second track, which I refer to as the test track. 
+
+An increase in model complexity, with a number of convolutional layers followed by fully connected layers, allowed the  drive the car for a portion of the training track, before going off-road. I decided to try the network architecture developed by NVIDIA, and also to augment the dataset in the way described in the paper. I use images captured from the lateral cameras,  
 The overall strategy for deriving a model architecture was to ...
 
 My first step was to use a convolution neural network model similar to the ... I thought this model might be appropriate because ...
@@ -102,20 +109,22 @@ Here is a visualization of the architecture (note: visualizing the architecture 
 
 ####3. Creation of the Training Set & Training Process
 
-To capture good driving behavior, I first recorded two laps on track one using center lane driving. Here is an example image of center lane driving:
-
+Having adopted Udacity's dataset, and after augmentation and pre-processing of training data, the program was able to drive around the training track successfully. However, it would go off-road in the test track. The latter is narrower, has changes in elevation, tighter turns, and a lane marking along the middle. From the road it sometimes possible to see other portions of the track that are not accessible from there, but nevertheless can confond the program that tries to drive toward them. In screen capture here below some situations where the program went off-road or anyway collided with an obstacle. TODO 
+ 
 ![alt text][image2]
 
-I then recorded the vehicle recovering from the left side and right sides of the road back to center so that the vehicle would learn to .... These images show what a recovery looks like starting from ... :
-
 ![alt text][image3]
-![alt text][image4]
-![alt text][image5]
 
-Then I repeated this process on track two in order to get more data points.
+ 
+Udacity's dataset records driving mostly in the middle of the road, while in the problematic spots of the test track the car was very close to the side, and at a steep angle with it. 
+ 
+ Increasing the steering correction for side images allowed to go around some of the tight turns, but not all of them; also, the car would wobble and go off-road in straight sections. 
+ 
+ I tried additional tactics for data augmentation. I shifted images down and to the sides, I rotated them, by a constant or random amound, along with a correction to the steering angle. I darkened them. I also tried different color spaces in pre-processing (LAB, HSV). For each of these tactics I tried a number of variations: different ways to fill in 'empty' pixels after roto-translation, different centers of rotation, etc.. It was time-consuming, and didn't bring about significant improvement on the test track.
+ 
+ What proved effective, instead, was to collect additional training data from the training track: I placed the car close to the curb and at a steep angle, then steered hard and begun to accelerate before starting to record data, and then recorded while I was taking the car to drive along the middle of the road. A few of those, and additional around 800 images per camera, and the trained network drove around the test track multiple times without any accident, and after one hour of driving, the car was still going around.   
 
-To augment the data sat, I also flipped images and angles thinking that this would ... For example, here is an image that has then been flipped:
-
+ Since I adopted NVIDIA's model, a few epochs were enough to train the network at its best: four or five. Going past five epochs, loss on validation data would stay almost constant, and driving behavior would not improve. Here below a chart of training and validation loss over a training of 20 epochs with the final network architecture and dataset.
 ![alt text][image6]
 ![alt text][image7]
 
