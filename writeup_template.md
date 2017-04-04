@@ -1,10 +1,10 @@
-#README
+# README
 
-#**Behavioral Cloning** 
+# **Behavioral Cloning** 
 
 ---
 
-A program learns to steer a car, in a driving simulator, looking at someone else's driving. Udacity provided the driving simulator, and also a training dataset, consisting in images recorded while driving in the simulator, and related telemetry (e.g., the steering angle). It is possible to collect additional data, driving in the simulator. 
+A program learns to steer a car, in a driving simulator, looking at someone else's driving. Udacity provided the driving simulator, and also a training dataset, consisting in images recorded while driving in the simulator, and related telemetry (e.g., the steering angitle). It is possible to collect additional data, driving in the simulator. 
 
 The program processes the training dataset, and trains a neural network for the car to drive autonomously, not only around the track where the training was done, but also around an additional track not seen during training.
 
@@ -18,7 +18,7 @@ The program processes the training dataset, and trains a neural network for the 
 [image4]: ./README_Images/crash.png  "Car crash"
 
 ## Rubric Points
-###Here I will consider the [specifications](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each requirement in my implementation.  
+### Here I will consider the [specifications](https://review.udacity.com/#!/rubrics/432/view) individually and describe how I addressed each requirement in my implementation.  
 
 **Files and directories content**
  - `readme.md` this file.
@@ -30,13 +30,13 @@ The program processes the training dataset, and trains a neural network for the 
   
  Udacity's dataset can be downloaded [from here](https://d17h27t6h515a5.cloudfront.net/topher/2016/December/584f6edd_data/data.zip).  
  
-###Files Submitted & Code Quality
+### Files Submitted & Code Quality
 
-####1. Submission includes all required files and can be used to run the simulator in autonomous mode
+#### 1. Submission includes all required files and can be used to run the simulator in autonomous mode
 
 See list of files above.
 
-####2. Submission includes functional code
+#### 2. Submission includes functional code
 
 To run the simulator in autonomous mode, *first* start the simulator, then type, in the project directory:
 
@@ -49,13 +49,13 @@ To train the neural network on a dataset in `<dataset_dir>`, and save it in a bi
 Result will be saved in the current directory in a file called `model.h5`
 
 
-####3. Submission code is usable and readable
+#### 3. Submission code is usable and readable
 
 The `model.py` file contains the code for training and saving the convolution neural network. The file shows the pipeline I used for training and validating the model, and it contains comments to explain how the code works.
 
-###Model Architecture and Training Strategy
+### Model Architecture and Training Strategy
 
-####1. An appropriate model architecture has been employed
+#### 1. An appropriate model architecture has been employed
 
 I adopted the neural network architecture developed by NVIDIA for end-to-end deep learning of self-driving cars, as reported in their [blog](https://devblogs.nvidia.com/parallelforall/deep-learning-self-driving-cars/). For mode details, also see NVIDIA's [paper](https://arxiv.org/pdf/1604.07316v1.pdf).  
 
@@ -65,7 +65,7 @@ During training of the network, images from cameras are fed into it, and its out
 
 When the program drives, images from the center camera are fed to the trained model, and the resulting steering angle is applied. Images from side cameras are used for training but not for driving, as detailed below.
 
-####2. Attempts to reduce overfitting in the model
+#### 2. Attempts to reduce overfitting in the model
 
 NVIDIA's model uses a stride of 2 in the first three convolutional layers, reducing the number of trained parameters and the spatial overlapping of the convolution output, which should help control overfitting.
 
@@ -76,19 +76,19 @@ In the chart we can see that trending of the computed loss on training and valid
 
 Most important, the program drove successfully around a track that was never used for training, generalising from the received training data. 
 
-####3. Model parameter tuning
+#### 3. Model parameter tuning
 
 The model used an Adam optimizer, so the learning rate was not tuned manually. However, I tuned the correction to the steering angle for the left and right camera, by trial and error. A too small value made data augmentation insufficient, and the program drove straight is some turns. A too large value made the car swing from side to side in straight segments, wider and wider, until it went off-road. 
 
-####4. Appropriate training data
+#### 4. Appropriate training data
 
 I adopted the training dataset provided by Udacity with the simulator. Because it didn't cover certain relevant situations, I have complemented it by recording some additional data. Specifically, I have been starting with the car pointing to vertical poles by the side of the track, at a steep angle with the curb, to then drive toward the middle of the road. Picture below shows the typical starting position.
     
 ![image][image2]
 
-###Model Architecture and Training Strategy
+### Model Architecture and Training Strategy
 
-####1. Solution Design Approach
+#### 1. Solution Design Approach
 
 I first adopted a very simple network design, with a fully connected layer and the output layer, to see that I could train the model and use it to drive the car in the simulator.
  
@@ -100,7 +100,7 @@ I decided to try the network architecture developed by NVIDIA, and also to augme
 
 I also tried adopting well-established, pre-trained models, i.e. VGG-16, VGG-19 and ResNet50, via transfer learning. In every case I didn't get significant improvements, compared to the driving behavior of NVIDIA's model. This can be because those models had a different purpose, to classify images from the ImageNet database, and transfer-learning was not appropriate. Those models would have required to be re-trained on the new dataset, or at least fine-tuned. Given they are computationally expensive to train, I staid with NVIDIA's network architecture.
     
-####2. Final Model Architecture
+#### 2. Final Model Architecture
 
 This is the breakdown of NVIDIA's model, as I have adopted it. Input images (after pre-processing) are color images with resolution 320 x 65 pixels (width x height). 
 
@@ -128,7 +128,7 @@ This is the breakdown of NVIDIA's model, as I have adopted it. Input images (aft
 | Activation			| RELU                      	    	|
 | Fully connected		| 1 neuron                            	|
 
-####3. Creation of the Training Set & Training Process
+#### 3. Creation of the Training Set & Training Process
 
 Pre-processing applies these step to every image:
  - **Cropping** from 320 x 160 pixels to 320 x 65, removing 70 lines of pixels from the top (not relevant to driving, as often above the horizon), and 25 lines from the bottom (where the car's hood is in the way). Cropping is done before any other pre-processing, as it lowers the image resolution and therefore speeds up further processing.
