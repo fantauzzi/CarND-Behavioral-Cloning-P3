@@ -41,25 +41,27 @@ def pre_process(image):
 
 def generator(samples, batch_size, images_dir):
     """
-    Generates batches of samples to train the network.
+    Generates batches of samples to train the network. Images are pre-processed and then used to augment
+    the dataset. For every pre-processed image, six images will go in the batch after augmentation. 
     :param samples: list-like with telemetry data, and their association with input images, from the CSV file. 
-    :param batch_size: size of the batch to be returned, must be a multiple of 6.
+    :param batch_size: size of the batch to be returned, including augmented images; must be a multiple of 6.
     :param images_dir: path to the directory containing the input images referenced by `samples`.
     :return: a pair (X, y) where X is a numpy array with the batch samples, and y is a numpy array with the 
     corresponding correct values as provided by telemetry.
     """
     assert batch_size % reduce_f == 0
-    sub_batch_size = batch_size // reduce_f
+
     ''' Correction to the steering angle for images coming from center, left and right camera respectively; used for
     data augmentation. '''
     drift = (0, .5, -.5)  # (Center, Left, Right)
+
     while True:
         np.random.shuffle(samples)
         # Go around the samples in batches
-        for offset in range(0, len(samples), sub_batch_size):
-            batch_samples = samples[offset:offset + sub_batch_size]
+        for offset in range(0, len(samples), batch_size // reduce_f):
+            batch_samples = samples[offset:offset + (batch_size // reduce_f)]
             images, angles = [], []
-            # For every entry (line) in the telemetry data for this batch...
+            # For every entry (line of the CSV file) in the telemetry data for this batch...
             for batch_sample in batch_samples:
                 # For each of the three cameras (center, left and right respectively)...
                 for i in range(3):
@@ -70,11 +72,12 @@ def generator(samples, batch_size, images_dir):
                         print('File not found:', f_name)
                         print('Source:', batch_sample[i])
                     assert image is not None
+                    # Correct the steering angle based on which camera the image came from
                     angle = float(batch_sample[3]) + drift[i]
                     image = pre_process(image)
                     images.append(image)
                     angles.append(angle)
-                    # Augment the dataset flipping the image around the vertical axis
+                    # Augment the dataset further, flipping the image around the vertical axis
                     flipped = np.fliplr(image)
                     images.append(flipped)
                     angles.append(-angle)
@@ -126,11 +129,11 @@ def main():
     # Split dataset between training and validation
     train_samples, validation_samples = train_test_split(telemetry, test_size=0.1)
 
+    '''Batch size includes augmented images; 5 augmented images are generated for every original image in the dataset,
+    therefore the batch size should be a multiple of 6'''
     batch_size = 120
 
-    # How many images (included augmented data) are processed for every image in the dataset
-    sub_batch_factor = reduce_f
-    assert batch_size % sub_batch_factor == 0
+    assert batch_size % reduce_f == 0
     images_dir = dataset_dir + '/IMG'
     train_generator = generator(train_samples, batch_size=batch_size, images_dir=images_dir)
     validation_generator = generator(validation_samples, batch_size=batch_size, images_dir=images_dir)
@@ -154,21 +157,23 @@ def main():
 
     start_time = time.time()
 
+    # Do your thing!
     log = model.fit_generator(train_generator,
-                              steps_per_epoch=math.ceil(sub_batch_factor * len(train_samples) / batch_size),
+                              steps_per_epoch=math.ceil(reduce_f * len(train_samples) / batch_size),
                               validation_data=validation_generator,
-                              validation_steps=math.ceil(sub_batch_factor * len(validation_samples) / batch_size),
+                              validation_steps=math.ceil(reduce_f * len(validation_samples) / batch_size),
                               epochs=10,
                               verbose=1,
                               workers=1)
 
     end_time = time.time()
 
-    print('Time elapsed during optimization in seconds:', end_time - start_time)
+    print('Time elapsed during optimization in seconds:', round(end_time - start_time))
     model_fname = 'model.h5'
     model.save(model_fname)
     print('Model saved in file', model_fname)
 
+    # Chart validation and test loss per epoch
     plt.plot(log.history['loss'])
     plt.plot(log.history['val_loss'])
     plt.title('Mean squared error loss')

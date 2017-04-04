@@ -4,8 +4,5 @@
     <content url="file://$MODULE_DIR$" />
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="CarND-Transfer-Learning-Lab" />
-    <orderEntry type="module" module-name="CarND-LaneLines-P1" />
-    <orderEntry type="module" module-name="CarND-Traffic-Sign-Classifier-Project" />
   </component>
 </module>
