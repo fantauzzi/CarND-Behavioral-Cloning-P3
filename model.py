@@ -151,7 +151,7 @@ def main():
                               steps_per_epoch=math.ceil(sub_batch_factor * len(train_samples) / batch_size),
                               validation_data=validation_generator,
                               validation_steps=math.ceil(sub_batch_factor * len(validation_samples) / batch_size),
-                              epochs=30,
+                              epochs=10,
                               verbose=1,
                               workers=1)
 
