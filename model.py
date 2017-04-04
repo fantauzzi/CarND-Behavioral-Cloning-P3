@@ -8,10 +8,10 @@ from keras import backend
 import sklearn
 from sklearn.model_selection import train_test_split
 from matplotlib import pyplot as plt
-from random import randint
 import math
 import time
 import csv
+import argparse
 
 crop_top = 70
 crop_bottom = 25
@@ -38,10 +38,6 @@ def pre_process(image):
     image = image[crop_top:height - crop_bottom, :, :]
     image = cv2.cvtColor(image, cv2.COLOR_BGR2YUV)
     return image
-
-
-from random import random
-
 
 def generator(samples, batch_size, images_dir):
     """
@@ -89,17 +85,27 @@ def generator(samples, batch_size, images_dir):
 
 
 def main():
+
+    # Uncomment to prevent Tensorflow from pre-allocating all GPU memory
     '''
     config = tf.ConfigProto()
     config.gpu_options.allow_growth=True
     sess = tf.Session(config=config)
-
-    # sess = tf.Session()
     backend.set_session(sess)
     '''
 
+    parser = argparse.ArgumentParser(description='Model Builder')
+    parser.add_argument(
+        'dataset_dir',
+        type=str,
+        nargs='?',
+        default='',
+        help='Path to dataset directory.'
+    )
+    args = parser.parse_args()
+
     # Base directory for the dataset
-    dataset_dir = '/home/fanta/datasets/udacity/data'
+    dataset_dir = args.dataset_dir
 
     # Load telemetry from the dataset, reading all .csv files in the given directory
     telemetry = []
@@ -129,6 +135,7 @@ def main():
     train_generator = generator(train_samples, batch_size=batch_size, images_dir=images_dir)
     validation_generator = generator(validation_samples, batch_size=batch_size, images_dir=images_dir)
 
+    # Build the optimization model
     model = Sequential()
     model.add(Lambda(lambda x: (x / 255 - .5) * 2, input_shape=(160 - crop_top - crop_bottom, 320, 3)))
     model.add(Conv2D(24, kernel_size=(5, 5), strides=(2, 2), activation='relu'))
